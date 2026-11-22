@@ -1,0 +1,21 @@
+/*
+  Content-Security-Policy: object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  Permissions-Policy: document-domain=()
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+# /home shows the planner in a same-site iframe, so this one page may be
+# framed by TinyTable itself (and still by no other site). The asset layer
+# may serve it as /tinytable.html or /tinytable, so both paths are listed.
+/tinytable.html
+  ! Content-Security-Policy
+  ! X-Frame-Options
+  Content-Security-Policy: object-src 'none'; base-uri 'self'; frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN
+
+/tinytable
+  ! Content-Security-Policy
+  ! X-Frame-Options
+  Content-Security-Policy: object-src 'none'; base-uri 'self'; frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN

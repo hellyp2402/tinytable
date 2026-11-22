@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinyTable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Grandstander:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a bright summer day at the beach. Blue sky, a glowing sun, drifting clouds and
+   rolling waves along the bottom. A white "beach towel" tray on the left (theme, kids, supplies)
+   and the activity as a paper index card on the right. Single theme by choice: always sunny. */
+:root{
+  --sky-top:#38B6FF;
+  --sky-mid:#8FDBFF;
+  --sky-low:#FFF4C9;
+  --panel:rgba(255,255,255,.9);
+  --panel-solid:#FFFFFF;
+  --ink:#17324D;
+  --muted:#4E6680;
+  --line:rgba(23,50,77,.14);
+  --coral:#FF6B6B;
+  --orange:#FF9F1C;
+  --yellow:#FFD23F;
+  --green:#3BC47E;
+  --cyan:#1FB5F0;
+  --violet:#B388FF;
+  --font-display:"Grandstander", "Comic Neue", "Trebuchet MS", sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --rainbow:linear-gradient(90deg,var(--coral),var(--orange),var(--yellow),var(--green),var(--cyan),var(--violet));
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 42%,var(--sky-low) 88%) fixed;
+  background-color:var(--sky-mid);
+  padding-bottom:70px;
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #0B6FB8;outline-offset:2px;border-radius:8px}
+[hidden]{display:none !important}
+
+/* Summer scene */
+.scene{position:fixed;pointer-events:none;z-index:-1}
+.sun{width:200px;height:200px;right:-40px;top:-40px;border-radius:50%;
+  background:radial-gradient(circle at 40% 38%,#FFFBD6 0,#FFE45C 45%,#FFB703 100%);
+  box-shadow:0 0 70px 26px rgba(255,214,70,.6),0 0 160px 60px rgba(255,236,150,.45)}
+.sun::before{content:"";position:absolute;inset:-80px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(255,226,110,.55) 0 7deg,transparent 7deg 20deg);
+  -webkit-mask:radial-gradient(circle,transparent 48%,#000 49%,#000 62%,transparent 74%);mask:radial-gradient(circle,transparent 48%,#000 49%,#000 62%,transparent 74%)}
+.cloud{width:150px;height:46px;background:#fff;border-radius:999px;opacity:.95;filter:drop-shadow(0 8px 10px rgba(30,100,160,.12))}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:70px;height:70px;left:22px;top:-34px}
+.cloud::after{width:52px;height:52px;left:76px;top:-22px}
+.cloud.c1{top:14%;left:4%}
+.cloud.c2{top:38%;left:58%;transform:scale(.7);opacity:.85}
+.cloud.c3{top:62%;left:16%;transform:scale(.55);opacity:.8}
+.beach{left:0;right:0;bottom:0;height:120px}
+.beach svg{display:block;width:100%;height:100%}
+@media (prefers-reduced-motion: no-preference){
+  .sun::before{animation:spin 80s linear infinite}
+  .cloud.c1{animation:float 70s linear infinite}
+  .cloud.c2{animation:float 95s linear infinite;animation-delay:-40s}
+  .cloud.c3{animation:float 120s linear infinite;animation-delay:-80s}
+  .beach .wave1{animation:bob 6s ease-in-out infinite alternate}
+  .beach .wave2{animation:bob 8s ease-in-out infinite alternate-reverse}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{from{translate:-30vw 0}to{translate:110vw 0}}
+@keyframes bob{to{transform:translateX(-40px)}}
+@media (max-width:700px){.sun{width:120px;height:120px;right:-34px;top:-34px}.sun::before{inset:-50px}.beach{height:80px}}
+
+.wrap{max-width:1260px;margin:0 auto;padding:22px 20px 40px}
+
+/* Wordmark */
+.wordmark{font-family:var(--font-display);font-weight:800;font-size:clamp(2.4rem,5vw,3.6rem);line-height:1;margin:0;display:flex;gap:.03em;letter-spacing:-.01em}
+.wordmark span{display:inline-block;-webkit-text-stroke:2px #fff;paint-order:stroke fill;text-shadow:0 4px 0 rgba(23,50,77,.18)}
+.wordmark span:nth-child(6n+1){color:#F0484E}
+.wordmark span:nth-child(6n+2){color:#FF8A00}
+.wordmark span:nth-child(6n+3){color:#F5B800}
+.wordmark span:nth-child(6n+4){color:#22A866}
+.wordmark span:nth-child(6n+5){color:#0D97D6}
+.wordmark span:nth-child(6n){color:#8B5CF6}
+@media (prefers-reduced-motion: no-preference){
+  .wordmark span{animation:hop .55s cubic-bezier(.3,1.6,.5,1) both}
+  .wordmark span:nth-child(2){animation-delay:.04s}.wordmark span:nth-child(3){animation-delay:.08s}.wordmark span:nth-child(4){animation-delay:.12s}
+  .wordmark span:nth-child(5){animation-delay:.16s}.wordmark span:nth-child(6){animation-delay:.2s}.wordmark span:nth-child(7){animation-delay:.24s}
+  .wordmark span:nth-child(8){animation-delay:.28s}.wordmark span:nth-child(9){animation-delay:.32s}
+}
+@keyframes hop{from{transform:translateY(12px)}to{transform:none}}
+
+/* ---------- Login screen ---------- */
+.login{min-height:100vh;display:grid;place-items:center;padding:28px 18px 120px}
+.login-box{width:min(520px,100%);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:24px;padding:30px 28px 26px;position:relative;overflow:hidden;box-shadow:0 26px 60px -24px rgba(12,80,140,.45)}
+.login-box::before{content:"";position:absolute;inset:0 0 auto 0;height:7px;background:var(--rainbow)}
+.login .wordmark{font-size:clamp(2.6rem,9vw,3.8rem);margin-bottom:10px}
+.login h2{font-family:var(--font-display);font-weight:800;font-size:1.45rem;margin:4px 0 6px;text-wrap:balance}
+.login p{margin:0 0 14px;color:var(--muted)}
+.perks{list-style:none;padding:0;margin:0 0 20px;display:grid;gap:8px}
+.perks li{display:flex;gap:10px;align-items:flex-start}
+.perks li::before{content:"";width:13px;height:13px;border-radius:50%;flex:none;margin-top:.38em;background:var(--c);box-shadow:0 2px 0 rgba(23,50,77,.18)}
+.login-actions{display:flex;flex-direction:column;gap:10px}
+.login-note{font-size:.88rem;color:var(--muted);margin:12px 0 0}
+.login-msg{font-size:.92rem;margin:10px 0 0;color:#C2410C;font-weight:700;min-height:1.2em}
+.setup-grid{display:grid;gap:12px;margin:6px 0 18px}
+.setup-grid label{display:block;font-weight:700;font-size:.9rem;margin-bottom:4px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- App ---------- */
+.mast{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 28px;margin-bottom:22px}
+.tagline{margin:6px 0 0;color:var(--ink);max-width:50ch;font-size:1.05rem;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.account{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid rgba(255,255,255,.8);border-radius:999px;padding:6px 6px 6px 8px;box-shadow:0 8px 20px -10px rgba(12,80,140,.4)}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;color:var(--ink);background:var(--rainbow);flex:none}
+.acct-text{line-height:1.2;min-width:0}
+.acct-text b{display:block;font-size:.95rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-text span{font-size:.8rem;color:var(--muted)}
+
+.app{display:grid;grid-template-columns:minmax(330px,440px) minmax(0,1fr);gap:26px;align-items:start}
+@media (max-width:920px){.app{grid-template-columns:1fr}}
+
+.tray{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:22px;position:relative;overflow:hidden;box-shadow:0 20px 50px -26px rgba(12,80,140,.5)}
+.tray::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:var(--rainbow)}
+@media (min-width:921px){.tray{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}}
+.step-h{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-family:var(--font-display);font-weight:800;font-size:1.25rem}
+.step-n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;color:var(--ink);font-size:.95rem;flex:none;background:var(--c);box-shadow:0 3px 0 rgba(23,50,77,.2)}
+.hint{color:var(--muted);font-size:.88rem;margin:0}
+
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px}
+.theme-btn{text-align:left;padding:10px 11px;border-radius:12px;border:2px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 16%,#fff);cursor:pointer;font-weight:700;font-size:.92rem;line-height:1.2;color:var(--ink);display:flex;align-items:center;gap:8px;transition:transform .12s ease,background .12s ease}
+.theme-btn .sw{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none}
+.theme-btn:hover{transform:translateY(-2px);background:color-mix(in srgb,var(--c) 28%,#fff)}
+.theme-btn[aria-pressed="true"]{background:var(--c);color:var(--ink-on,var(--ink));border-color:var(--c);box-shadow:0 4px 0 color-mix(in srgb,var(--c) 60%,#17324D)}
+.theme-btn[aria-pressed="true"] .sw{background:#fff}
+.row{display:flex;gap:8px;margin-top:10px}
+.field{flex:1;min-width:0;width:100%;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+.field::placeholder{color:#7A8CA0}
+.field:focus{border-color:var(--cyan)}
+.field.active{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,159,28,.25)}
+
+.sub-label{font-weight:700;font-size:.8rem;color:var(--muted);margin:12px 0 7px;text-transform:uppercase;letter-spacing:.08em}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:7px 12px;border-radius:999px;border:2px solid var(--c);color:var(--ink);cursor:pointer;font-weight:700;font-size:.9rem;background:color-mix(in srgb,var(--c) 14%,#fff);font-variant-numeric:tabular-nums}
+.seg input:checked + label{background:var(--c);color:var(--ink);box-shadow:0 3px 0 color-mix(in srgb,var(--c) 55%,#17324D)}
+.seg input:focus-visible + label{outline:3px solid #0B6FB8;outline-offset:2px}
+
+.add-supply{background:#FFF6D6;border:2px dashed var(--orange);border-radius:14px;padding:10px 12px;margin-bottom:6px}
+.add-supply label{font-weight:700;font-size:.9rem;color:#A85A00;display:block;margin-bottom:6px}
+.add-supply .row{margin-top:0}
+.sup-group{margin-top:12px}
+.sup-group h4{margin:0 0 7px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--c) 55%,#17324D);display:flex;align-items:center;gap:6px}
+.sup-group h4::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--c) 70%,#fff);background:#fff;cursor:pointer;font-size:.9rem;line-height:1.25;color:var(--ink)}
+.chip .tick{width:14px;height:14px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--c) 75%,#17324D);display:inline-grid;place-items:center;flex:none}
+.chip:hover{background:color-mix(in srgb,var(--c) 14%,#fff)}
+.chip[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--ink);font-weight:700}
+.chip[aria-pressed="true"] .tick{background:var(--ink);border-color:var(--ink)}
+.chip[aria-pressed="true"] .tick::after{content:"";width:6px;height:3px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.chip.mine{background:var(--c);border-color:var(--c);color:var(--ink);font-weight:700}
+.chip.mine .x{font-weight:800;margin-left:2px;opacity:.7}
+.sup-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.linkbtn{background:none;border:none;padding:2px 4px;color:#0B6FB8;font-weight:700;cursor:pointer;font-size:.88rem}
+.count{font-variant-numeric:tabular-nums}
+
+.go{display:flex;flex-direction:column;gap:8px;position:sticky;bottom:-22px;background:linear-gradient(rgba(255,255,255,0),#fff 18%);padding:16px 0 4px;margin-top:-8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;border:2px solid transparent;font-weight:700;cursor:pointer;font-size:1rem;transition:transform .1s ease,filter .1s ease}
+.btn:hover{filter:brightness(1.04)}
+.btn:active{transform:translateY(2px)}
+.btn-primary{background:linear-gradient(95deg,#FFD23F,#FF9F1C);color:var(--ink);box-shadow:0 5px 0 #D97A00}
+.btn-primary:active{box-shadow:0 2px 0 #D97A00}
+.btn-custom{background:#fff;border-color:var(--cyan);color:var(--ink);box-shadow:0 4px 0 color-mix(in srgb,var(--cyan) 55%,#17324D)}
+.btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--muted)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn-small{padding:8px 12px;font-size:.9rem;border-radius:11px;background:#fff;border:1.5px solid rgba(255,255,255,.9);color:var(--ink);box-shadow:0 3px 0 rgba(23,50,77,.12)}
+.btn-small:hover{border-color:var(--cyan)}
+.btn-small.save{border-color:var(--orange);color:#A85A00}
+.btn-small.save[aria-pressed="true"]{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+
+.out{display:flex;flex-direction:column;gap:14px;min-width:0}
+.out-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.out-bar .left{font-family:var(--font-display);font-weight:800;font-size:1.25rem;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.out-bar .right{display:flex;flex-wrap:wrap;gap:8px}
+.status{min-height:1.4em;font-size:.92rem;color:var(--ink);margin:0;font-weight:700}
+.status.warn{color:#B42318}
+
+/* Index card */
+.card{--text:#1D2738;--soft:#56627A;--pinkline:#F0627A;background:#fff;color:var(--text);border-radius:8px 8px 22px 8px;box-shadow:0 26px 50px -22px rgba(12,80,140,.55),0 2px 0 rgba(23,50,77,.06);overflow:hidden;color-scheme:light}
+.card-band{background:var(--band);color:var(--band-ink);padding:22px 28px 20px 64px;position:relative}
+.card-band::before{content:"";position:absolute;left:22px;top:26px;width:20px;height:20px;border-radius:50%;background:var(--sky-mid);box-shadow:inset 0 2px 3px rgba(0,0,0,.3)}
+.card-band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--rainbow)}
+.kicker{margin:0 0 4px;font-weight:700;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+.card h2{font-family:var(--font-display);font-weight:800;font-size:clamp(1.7rem,3.4vw,2.4rem);line-height:1.05;margin:0;text-wrap:balance}
+.card-body{padding:18px 28px 26px 64px;background-image:linear-gradient(to right,transparent 46px,var(--pinkline) 46px,var(--pinkline) 48px,transparent 48px)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.meta span{border-radius:7px;padding:4px 10px;font-weight:700;font-size:.85rem;font-variant-numeric:tabular-nums}
+.meta span:nth-child(1){background:#FFE3E3;color:#B42318}
+.meta span:nth-child(2){background:#FFF3CC;color:#8A5A00}
+.meta span:nth-child(3){background:#DDF6FF;color:#0B6488}
+.summary{font-size:1.08rem;margin:0 0 18px;max-width:62ch}
+.card h3{font-family:var(--font-display);font-weight:800;font-size:1.1rem;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.card h3::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--dot,#9B6BFF)}
+.s-need{--dot:#FF6B6B}.s-setup{--dot:#FF9F1C}.s-do{--dot:#3BC47E}.s-talk{--dot:#1FB5F0}.s-clean{--dot:#9B6BFF}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:22px 30px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}.card-band{padding-left:56px}.card-body{padding-left:56px;padding-right:18px}}
+.card section{margin-bottom:18px}
+.card ul,.card ol{margin:0;padding-left:1.2em}
+.card li{margin:0 0 5px}
+.needs{list-style:none;padding:0 !important;columns:2;column-gap:16px}
+.needs li{break-inside:avoid;display:flex;gap:7px;align-items:flex-start}
+.needs li::before{content:"";width:11px;height:11px;border:1.8px solid #FF6B6B;border-radius:3px;flex:none;margin-top:.38em}
+.needs li.opt{color:var(--soft)}
+.do{list-style:none;padding:0 !important;counter-reset:s;display:flex;flex-direction:column;gap:8px}
+.do li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;font-size:1.12rem;font-weight:700;line-height:1.35;border-bottom:1.5px solid #D6E6F7;padding-bottom:8px;margin:0}
+.do li::before{content:counter(s);font-family:var(--font-display);font-weight:800;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;font-size:1rem;background:#F0484E}
+.do li:nth-child(6n+2)::before{background:#F07800}.do li:nth-child(6n+3)::before{background:#D9A100}
+.do li:nth-child(6n+4)::before{background:#22A866}.do li:nth-child(6n+5)::before{background:#0D97D6}.do li:nth-child(6n)::before{background:#8B5CF6}
+.adapt{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+@media (max-width:640px){.adapt{grid-template-columns:1fr}}
+.adapt div{border:2px solid #E5E9F0;border-radius:12px;padding:10px 12px}
+.adapt div.easy.fit{border-color:#3BC47E;background:#EAFBF0}
+.adapt div.hard.fit{border-color:#9B6BFF;background:#F2ECFF}
+.adapt b{display:flex;justify-content:space-between;gap:6px;font-size:.92rem;margin-bottom:3px}
+.adapt .tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:#fff;border-radius:4px;padding:1px 6px;align-self:center}
+.adapt .easy .tag{background:#22A866}.adapt .hard .tag{background:#8B5CF6}
+.adapt p{margin:0;font-size:.95rem}
+.words{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.words span{border-radius:999px;padding:2px 11px;font-weight:700;font-size:.88rem;color:#fff}
+.words span:nth-child(5n+1){background:#F0484E}.words span:nth-child(5n+2){background:#F07800}.words span:nth-child(5n+3){background:#0D97D6}.words span:nth-child(5n+4){background:#22A866}.words span:nth-child(5n){background:#8B5CF6}
+.safety{background:#FFEDEF;border-left:5px solid #F0627A;border-radius:4px 12px 12px 4px;padding:10px 14px}
+.safety h3::before{background:#F0627A}
+.safety ul{font-size:.95rem}
+.source{font-size:.8rem;color:var(--soft);margin:16px 0 0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.thinking{padding:44px 28px 48px 64px}
+.thinking p{font-family:var(--font-display);font-weight:800;font-size:1.3rem;margin:0 0 8px}
+.dots{display:flex;gap:8px;margin-top:14px}
+.dots i{width:12px;height:12px;border-radius:50%;opacity:.4}
+.dots i:nth-child(1){background:#FF6B6B}.dots i:nth-child(2){background:#FFB800}.dots i:nth-child(3){background:#1FB5F0}
+@media (prefers-reduced-motion: no-preference){
+  .dots i{animation:blink 1s infinite ease-in-out}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  .card.enter{animation:land .45s cubic-bezier(.2,.9,.3,1.15)}
+}
+@keyframes blink{50%{opacity:1;transform:translateY(-5px)}}
+@keyframes land{from{transform:translateY(-22px) scale(.98);opacity:.3}to{transform:none;opacity:1}}
+
+/* Saved shelf */
+.shelf{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:18px;box-shadow:0 16px 40px -24px rgba(12,80,140,.45)}
+.shelf h2{font-family:var(--font-display);font-weight:800;font-size:1.2rem;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.shelf h2 .n{background:var(--yellow);color:var(--ink);border-radius:999px;padding:0 9px;font-size:.9rem}
+.saved-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.ticket{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line);border-left:6px solid var(--c);border-radius:12px;padding:10px 12px}
+.ticket b{font-family:var(--font-display);font-weight:800;line-height:1.15}
+.ticket span{font-size:.8rem;color:var(--muted)}
+.ticket .acts{display:flex;gap:6px;margin-top:2px}
+.ticket .acts button{padding:5px 10px;font-size:.82rem;border-color:var(--line)}
+
+footer.note{margin-top:8px;color:var(--ink);font-size:.85rem;background:rgba(255,255,255,.7);border-radius:12px;padding:8px 12px}
+
+
+/* Simple flow additions */
+.how{list-style:none;padding:0;margin:14px 0 22px;display:grid;gap:10px;counter-reset:h}
+.how li{display:flex;align-items:center;gap:12px;font-size:1.05rem;font-weight:700;counter-increment:h}
+.how li::before{content:counter(h);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:800;color:var(--ink);flex:none;box-shadow:0 3px 0 rgba(23,50,77,.18)}
+.how li:nth-child(1)::before{background:var(--coral)}.how li:nth-child(2)::before{background:var(--yellow)}.how li:nth-child(3)::before{background:var(--cyan)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q{display:block;font-weight:700;font-size:.9rem;margin-bottom:4px}
+select.field{font-size:1rem;font-weight:700;cursor:pointer}
+.linkbtn.more{margin-top:10px;padding:4px 0;font-size:.95rem}
+.btn-big{font-size:1.15rem;padding:15px 18px}
+.go .linkbtn{align-self:center;font-size:.95rem}
+.tip{border:2px solid #3BC47E;background:#EAFBF0;border-radius:12px;padding:10px 14px;margin-bottom:18px}
+.tip.hard{border-color:#9B6BFF;background:#F2ECFF}
+.tip b{display:block;font-size:.95rem;margin-bottom:2px}
+.tip p{margin:0}
+
+
+/* Two pages */
+.view{display:flex;flex-direction:column;gap:16px;margin:0 auto}
+.view.plan{max-width:760px}
+.view.act{max-width:1000px}
+.view.plan .tray{position:relative;top:auto;max-height:none;overflow:visible}
+.view.plan .themes{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.go{bottom:0;padding-bottom:10px}
+.act-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.btn-small.back{font-weight:800}
+.choices{margin:0;font-weight:700;color:var(--ink);background:rgba(255,255,255,.75);border-radius:999px;padding:6px 14px;font-size:.92rem}
+.out-bar h2.left{margin:0}
+.act-bottom{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+.act-bottom .btn{flex:1 1 220px}
+.status:empty{display:none}
+@media print{.act-top,.act-bottom{display:none !important}}
+
+@media print{
+  @page{size:letter;margin:.5in}
+  body{background:#fff;padding:0}
+  .scene,.login,.mast,.tray,.out-bar,.status,.shelf,footer.note{display:none !important}
+  .wrap{padding:0;max-width:none}
+  .app{display:block}
+  .card{box-shadow:none;border:1px solid #ccc;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .card-band::before{background:#fff;box-shadow:inset 0 0 0 1.5px #999}
+}
+</style>
+</head>
+<body>
+<div class="scene sun" aria-hidden="true"></div>
+<div class="scene cloud c1" aria-hidden="true"></div>
+<div class="scene cloud c2" aria-hidden="true"></div>
+<div class="scene cloud c3" aria-hidden="true"></div>
+<div class="scene beach" aria-hidden="true"><svg viewBox="0 0 1440 120" preserveAspectRatio="none"><path class="wave1" d="M-60 38 C 120 10, 240 62, 420 36 S 720 8, 900 34 S 1200 64, 1380 32 S 1560 20, 1560 20 V120 H-60Z" fill="#5FD4E6" opacity=".85"/><path class="wave2" d="M-60 62 C 140 40, 300 84, 480 60 S 800 36, 980 62 S 1280 86, 1500 58 V120 H-60Z" fill="#22B8CF"/><path d="M0 92 C 240 78, 480 100, 720 90 S 1200 80, 1440 94 V120 H0Z" fill="#FFE2A3"/><path d="M0 92 C 240 78, 480 100, 720 90 S 1200 80, 1440 94" fill="none" stroke="#fff" stroke-width="3" opacity=".8"/></svg></div>
+
+<!-- ============ LOGIN ============ -->
+<section class="login" id="login" aria-labelledby="loginTitle" hidden>
+  <div class="login-box">
+    <h1 class="wordmark" aria-label="TinyTable"><span>T</span><span>i</span><span>n</span><span>y</span><span>T</span><span>a</span><span>b</span><span>l</span><span>e</span></h1>
+
+    <div id="loginStart">
+      <h2 id="loginTitle">Sign in to save your work</h2>
+      <p>Your supplies and saved activities will be waiting every time you come back.</p>
+      <div class="login-actions">
+        <button type="button" class="btn btn-primary" id="signInBtn" disabled>Checking your account…</button>
+        <button type="button" class="btn btn-ghost" id="guestBtn">← Back to planning</button>
+      </div>
+      <p class="login-msg" id="loginMsg" role="status"></p>
+      <p class="login-note" id="loginNote">Sign in with your DeepSpace account to sync saved activities.</p>
+    </div>
+
+    <form id="loginSetup" hidden autocomplete="off">
+      <h2>Welcome! What should we call you?</h2>
+      <div class="setup-grid">
+        <div><label for="setName">Your name</label><input class="field" id="setName" maxlength="40" placeholder="Ms. Rivera"></div>
+      </div>
+      <div class="login-actions">
+        <button type="submit" class="btn btn-primary" id="setupSave">Start planning</button>
+        <button type="button" class="btn btn-ghost" id="setupBack">Back</button>
+      </div>
+      <p class="login-msg" id="setupMsg" role="status"></p>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div class="wrap" id="appWrap">
+  <header class="mast">
+    <div>
+      <h1 class="wordmark" aria-label="TinyTable"><span>T</span><span>i</span><span>n</span><span>y</span><span>T</span><span>a</span><span>b</span><span>l</span><span>e</span></h1>
+      <p class="tagline" id="tagline">Answer 3 quick questions to get an activity card.</p>
+    </div>
+    <div class="account">
+      <span class="avatar" id="avatar">G</span>
+      <span class="acct-text"><b id="acctName">Guest</b><span id="acctSub">Sign in to save your work</span></span>
+      <button type="button" class="btn btn-small" id="signOut">Sign in</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- PAGE 1: questions -->
+    <section class="view plan" id="planView" aria-label="Plan an activity">
+    <form class="tray" id="planner" autocomplete="off">
+      <section>
+        <h2 class="step-h"><span class="step-n" style="--c:var(--coral)">1</span>Pick a theme</h2>
+        <div class="themes" id="themes" role="group" aria-label="Theme"></div>
+        <button type="button" class="linkbtn more" id="showCustom">+ Type my own theme</button>
+        <div class="row" id="customRow" hidden><input class="field" id="customTheme" aria-label="Your own theme" placeholder="Like pumpkins, pets, or kindness" maxlength="40"></div>
+      </section>
+
+      <section>
+        <h2 class="step-h"><span class="step-n" style="--c:var(--yellow)">2</span>Who are the kids?</h2>
+        <div class="pair">
+          <div><label class="q" for="ageSel">Age</label><select class="field" id="ageSel"></select></div>
+          <div><label class="q" for="groupSel">How many</label><select class="field" id="groupSel"></select></div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="step-h"><span class="step-n" style="--c:var(--cyan)">3</span>What supplies do you have?</h2>
+        <p class="hint">Tap everything you have. <b><span class="count" id="supCount">0</span> picked</b></p>
+        <div class="chips" id="supplies" style="margin-top:10px"></div>
+        <button type="button" class="linkbtn more" id="moreSup">Show more supplies</button>
+        <div class="row">
+          <input class="field" id="customSupply" aria-label="Add another supply" placeholder="Something else? Type it here" maxlength="40">
+          <button type="button" class="btn btn-small" id="addSupply">Add</button>
+        </div>
+      </section>
+
+      <div class="go">
+        <button type="submit" class="btn btn-primary btn-big" id="goBuiltIn">Make my activity</button>
+        <button type="button" class="linkbtn" id="goCustom">Or create a custom idea</button>
+      </div>
+    </form>
+      <p class="status plan-status" role="status" aria-live="polite"></p>
+      <section class="shelf" aria-labelledby="shelfTitle">
+        <h2 id="shelfTitle">My saved activities <span class="n" id="shelfCount">0</span></h2>
+        <p class="hint" id="shelfHint">Tap "Save" on any activity to keep it here.</p>
+        <div class="saved-grid" id="savedGrid"></div>
+      </section>
+    </section>
+
+    <!-- PAGE 2: the activity -->
+    <section class="view act" id="activityView" aria-label="Your activity" hidden>
+      <div class="act-top">
+        <button type="button" class="btn btn-small back" id="backBtn">← Change my answers</button>
+        <p class="choices" id="choices"></p>
+      </div>
+      <div class="out-bar">
+        <h2 class="left" id="outLabel">Your activity</h2>
+        <div class="right">
+          <button type="button" class="btn btn-small" id="pdf">Print card</button>
+          <button type="button" class="btn btn-small save" id="saveCard" aria-pressed="false">Save</button>
+          <button type="button" class="btn btn-small" id="another">Different idea</button>
+        </div>
+      </div>
+      <p class="status act-status" role="status" aria-live="polite"></p>
+      <div id="cardSlot"></div>
+      <div class="act-bottom">
+        <button type="button" class="btn btn-ghost" id="backBtn2">← Change my answers</button>
+        <button type="button" class="btn btn-primary" id="another2">Show me a different idea</button>
+      </div>
+      <footer class="note">Always check activities against your program's safety and allergy rules.</footer>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+
+/* ================= Data ================= */
+const SUPPLIES = [
+  {g:"Art basics",c:"var(--coral)",items:[["paper","Construction paper"],["crayons","Crayons"],["markers","Washable markers"],["paint","Washable paint"],["brushes","Paintbrushes"],["gluesticks","Glue sticks"],["glue","School glue"],["scissors","Safety scissors"],["tape","Masking tape"]]},
+  {g:"Craft extras",c:"var(--orange)",items:[["plates","Paper plates"],["cups","Cups"],["sticks","Craft sticks"],["pompoms","Pom-poms"],["cotton","Cotton balls"],["tissue","Tissue paper"],["stickers","Stickers"],["yarn","Yarn"],["holepunch","Hole punch"],["filters","Coffee filters"],["sponges","Sponges"]]},
+  {g:"Sensory & play",c:"var(--green)",items:[["dough","Play dough"],["rice","Dry rice or beans"],["water","Water"],["bin","Bin or tub"],["scoops","Scoops & spoons"],["blocks","Blocks"],["scarves","Scarves or ribbons"],["music","Music player"]]},
+  {g:"Recyclables",c:"var(--cyan)",items:[["tubes","Cardboard tubes"],["boxes","Cardboard boxes"]]}
+];
+const LABEL={}; SUPPLIES.forEach(g=>g.items.forEach(([id,l])=>LABEL[id]=l));
+const SYNONYMS={beans:"rice",rice:"rice",pasta:"rice",oats:"rice","water table":"water",tub:"bin",bucket:"bin",lego:"blocks",legos:"blocks",duplo:"blocks","toilet paper":"tubes","paper towel":"tubes",playdough:"dough","play-doh":"dough",clay:"dough",ribbon:"scarves",streamers:"scarves",feathers:"pompoms",buttons:"pompoms",beads:"pompoms",spoons:"scoops",shovels:"scoops",watercolor:"paint",tempera:"paint",chalk:"crayons","oil pastels":"crayons","colored pencils":"crayons",box:"boxes",cardboard:"boxes",string:"yarn",twine:"yarn",straws:"sticks","popsicle":"sticks",tape:"tape","paper plate":"plates"};
+
+const THEMES={
+  summer:{name:"Summer Fun",c:"#FFC233",thing:"beach ball",things:"beach things",hide:"shells, toy sand shovels, and paper suns",build:"a sandcastle",scene:"a sunny beach",moves:["Splash in pretend waves","Toss and catch a pretend beach ball","Tiptoe across hot sand","Surf on a wobbly surfboard"],words:["sunny","sand","shell","splash"],q:["What do you like to do in summer?","How do we stay safe in the sun?"],colors:["yellow","orange","blue"],filter:"sun: glue it on blue paper and add paper-strip rays"},
+  space:{name:"Outer Space",c:"#8C7BFF",thing:"rocket",things:"rockets and stars",hide:"foil-wrapped 'moon rocks' or paper stars",build:"a launch pad and a rocket",scene:"a dark night sky",moves:["Count down 5-4-3-2-1 and blast off!","Float slowly like an astronaut","Spin like a planet","Twinkle your fingers like stars"],words:["planet","moon","astronaut","orbit"],q:["What would you take on a rocket trip?","What do you see in the sky at night?"],colors:["blue","yellow","white"],filter:"planet: glue it onto dark paper and add star stickers"},
+  fall:{name:"Fall Leaves",c:"#FF8A3D",thing:"leaf",things:"fall leaves",hide:"real or paper leaves, small pinecones, and acorns",build:"a squirrel's tree house",scene:"a big tree with bare branches",moves:["Fall slowly like a leaf","Scurry like a squirrel","Rake big piles with your arms","Jump into a pretend leaf pile!"],words:["crunchy","acorn","autumn","branch"],q:["What sound do leaves make when you step on them?","Why do you think leaves change color?"],colors:["red","orange","yellow"],filter:"leaf: cut it into a leaf shape and hang it on a paper tree"},
+  winter:{name:"Winter Snow",c:"#4FC3F7",thing:"snowman",things:"snowflakes",hide:"white pom-poms, cotton-ball 'snow', or toy penguins",build:"an igloo",scene:"a snowy hill",moves:["Waddle like a penguin","Shiver and shake like you're cold","Fall softly like a snowflake","Skate across the floor in socks"],words:["cold","mitten","snowflake","freeze"],q:["What do you wear when it is cold?","What happens to snow when it gets warm?"],colors:["white","blue","silver"],filter:"snowflake: fold it and snip little notches (adults snip for younger children)"},
+  ocean:{name:"Ocean",c:"#2EA8FF",thing:"fish",things:"ocean animals",hide:"toy sea animals, shells, or paper fish",build:"a coral reef or a boat",scene:"blue ocean waves",moves:["Swim like a fish with your arms","Walk sideways like a crab","Float slowly like a jellyfish","Flap like a seagull"],words:["wave","shell","fin","deep"],q:["What lives in the ocean?","Would you rather be a fish or a crab? Why?"],colors:["blue","green","white"],filter:"jellyfish: scrunch the top and tape on paper-strip tentacles"},
+  farm:{name:"Farm",c:"#FF6B6B",thing:"pig",things:"farm animals",hide:"toy farm animals or play vegetables",build:"a barn with fences",scene:"a green field with a red barn",moves:["Waddle like a duck","Gallop like a horse","Roll in the mud like a pig","Peck like a chicken"],words:["barn","hay","tractor","calf"],q:["What sound does a cow make? A sheep?","What do farmers grow?"],colors:["pink","red","brown"],filter:"pig face: add paper ears and a snout"},
+  bugs:{name:"Bugs",c:"#3EE07F",thing:"ladybug",things:"bugs",hide:"plastic bugs or paper ladybugs",build:"a bug hotel",scene:"green grass and flowers",moves:["Wiggle like a worm","Flutter like a butterfly","Crawl like an ant","Hop like a grasshopper"],words:["wings","antenna","crawl","insect"],q:["How many legs does a bug have?","Where do bugs live?"],colors:["red","black","green"],filter:"butterfly: pinch the middle and wrap it with tape or a craft stick"},
+  dinos:{name:"Dinosaurs",c:"#A3D94B",thing:"dinosaur",things:"dinosaurs",hide:"toy dinosaurs or paper 'fossil' bones",build:"a dino land with caves",scene:"volcanoes and tall plants",moves:["Stomp like a T. rex","Stretch tall like a long-neck dinosaur","Flap like a Pteranodon","Curl up in an egg, then hatch!"],words:["fossil","egg","roar","huge"],q:["Which dinosaur would you want as a pet?","How big do you think a dinosaur was?"],colors:["green","brown","orange"],filter:"dino egg: cut it into an oval and tape a paper baby dino peeking out"},
+  weather:{name:"Weather",c:"#33D6C8",thing:"rain cloud",things:"clouds and raindrops",hide:"blue paper raindrops and paper suns",build:"a house that stays dry in a storm",scene:"a sky with clouds",moves:["Tap your fingers like raindrops","Blow like the wind","Melt like a snowman in the sun","Stomp like thunder!"],words:["rain","cloud","wind","sunny"],q:["What is the weather like today?","What do you wear when it rains?"],colors:["gray","blue","yellow"],filter:"raindrop: cut it out and hang it on a 'weather window'"},
+  transport:{name:"Things That Go",c:"#FF4D6D",thing:"car",things:"cars, trucks, and trains",hide:"toy cars or paper stop signs",build:"roads, bridges, and a garage",scene:"a road with a stoplight",moves:["Drive your car slow, then fast","Chug like a train: choo choo!","Fly like an airplane","Red light means freeze, green light means go!"],words:["wheel","road","stop","go"],q:["How did you get to school today?","Which goes faster, a bike or a train?"],colors:["red","yellow","green"],filter:"hot-air balloon: add a paper basket at the bottom"},
+  garden:{name:"Garden",c:"#FF6FB5",thing:"flower",things:"flowers and veggies",hide:"play vegetables, seed packets, or paper flowers",build:"a garden with rows and a fence",scene:"brown dirt under a blue sky",moves:["Start as a tiny seed, then grow tall","Wiggle like a worm in the dirt","Buzz like a bee to each flower","Sway like a flower in the wind"],words:["seed","root","sprout","grow"],q:["What does a seed need to grow?","What is your favorite vegetable?"],colors:["pink","green","yellow"],filter:"flower: scrunch the center and add a craft-stick stem"},
+  helpers:{name:"Community Helpers",c:"#FFB020",thing:"fire truck",things:"community helpers",hide:"toy people, badges, or paper tools",build:"a fire station or a post office",scene:"a town street",moves:["Climb a ladder like a firefighter","Carry heavy mail like a mail carrier","Wave cars along like a crossing guard","Hammer like a builder"],words:["helper","firefighter","doctor","mail"],q:["Who helps us in our town?","What helper would you like to be?"],colors:["red","blue","yellow"],filter:"helper badge: cut it into a star"},
+  shapes:{name:"Shapes & Colors",c:"#C77DFF",thing:"circle",things:"shapes",hide:"colorful blocks or paper shapes",build:"a tower using only one shape",scene:"a big rainbow",moves:["Make a circle with your arms","Stand tall and straight like a line","Make a triangle with a friend","Hop to something red!"],words:["circle","square","triangle","color"],q:["Can you find a circle in our room?","What is your favorite color?"],colors:["red","yellow","blue"],filter:"rainbow: cut it in half and glue it on paper"}
+};
+const THEME_ORDER=["summer","space","fall","winter","ocean","farm","bugs","dinos","weather","transport","garden","helpers","shapes"];
+
+const AGE_OPTS=[["2","2"],["3","3"],["4","4"],["5","5"],["6","6"],["7","7"],["8","8"],["9","9"],["10","10"],["mix-young","Mixed 2–5"],["mix-old","Mixed 6–10"]];
+const AGE_HUES=["var(--coral)","var(--orange)","var(--yellow)","var(--green)","var(--cyan)","var(--violet)","var(--coral)","var(--orange)","var(--yellow)","var(--green)","var(--cyan)"];
+const GROUPS=[["small","2–5 kids"],["half","6–10 kids"],["whole","11+ kids"]];
+const GROUP_LABEL={small:"Small group (2–5)",half:"Half class (6–10)",whole:"Whole class (11+)"};
+function ageRange(a){if(a==="mix-young")return[2,5];if(a==="mix-old")return[6,10];const n=+a||4;return[n,n];}
+function ageLabel(a){if(a==="mix-young")return"Mixed ages 2–5";if(a==="mix-old")return"Mixed ages 6–10";return a==="5"?"Age 5 (Pre-K/K)":"Age "+a;}
+
+/* ================= Helpers ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+const titleCase=s=>s.replace(/\b([a-z])/g,(m,c)=>c.toUpperCase());
+const list=a=>a.length<2?(a[0]||""):a.slice(0,-1).join(", ")+(a.length>2?",":"")+" and "+a[a.length-1];
+function singular(w){const s=w.trim();if(/ies$/i.test(s)&&s.length>4)return s.slice(0,-3)+"y";if(/(ss|us|is)$/i.test(s)||s.length<=3)return s;if(/s$/i.test(s))return s.slice(0,-1);return s;}
+function hexRgb(h){const m=/^#?([0-9a-f]{6})$/i.exec(h||"");const n=m?parseInt(m[1],16):0x8C7BFF;return[(n>>16)&255,(n>>8)&255,n&255];}
+function bandInk(h){const[r,g,b]=hexRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});const L=.2126*r+.7152*g+.0722*b;return L>.32?"#1A1240":"#FFFFFF";}
+function customTheme(name){
+  const n=name.trim(),lower=n.toLowerCase(),one=singular(lower);
+  return{name:titleCase(n),c:"#33D6FF",custom:true,thing:one,things:lower,hide:`toys or pictures that go with ${lower}`,build:`a place where you might find ${lower}`,scene:`a simple background that fits ${lower}`,
+    moves:[`Show me how a ${one} might move!`,`Move fast, then slow, like ${lower}`,`Make yourself big like a ${one}, then tiny`,`Freeze in a ${one} pose!`],
+    words:[one,"big","small","same"],q:[`What do you know about ${lower}?`,`Where have you seen ${lower}?`],colors:["the colors that fit your theme"],filter:`${one}: cut it into a matching shape`};
+}
+
+/* ================= Activity formats ================= */
+const FORMATS=[
+{id:"collage",kind:"Art",ages:[2,8],min:20,mode:"station",needs:[["paper"],["gluesticks","glue"]],extras:["tissue","scissors","stickers","pompoms","cotton"],
+ title:t=>`${titleCase(t.thing)} Collage`,sum:t=>`Kids fill a big ${t.thing} shape with torn paper and texture from your shelf.`,
+ build:(t,c)=>({setup:[c.school?`Kids draw their own big ${t.thing} outline. Have a picture to look at.`:`Draw a big ${t.thing} outline on a sheet of paper for each child and write names on the back.`,
+    `Tear ${c.has("tissue")?"tissue paper and ":""}paper scraps into thumb-size pieces. Sort them into trays by color (${list(t.colors)}).`,
+    c.has("gluesticks")?"Take the caps off glue sticks and twist them down low so they don't snap.":"Squeeze a little school glue into shallow lids, one lid for every 2 kids.",
+    ...(c.has("pompoms")||c.has("cotton")?[`Set out a small bowl of ${c.has("pompoms")?"pom-poms":"cotton balls"} for extra texture.`]:[])],
+  steps:[`Find your ${t.thing}.`,"Rub glue on one small part.","Press paper pieces on the glue.",`Fill your whole ${t.thing}!`,"Tell me about your picture."],
+  easier:"Glue one small section at a time and offer bigger paper pieces. Hand-over-hand help is fine.",
+  harder:c.school?"Make a mosaic: use only small squares, leave thin gaps between them, and add a background scene.":c.has("scissors")?"Kids snip their own scraps with safety scissors and add a label you write together.":"Kids tear their own scraps and make a color pattern (red, yellow, red, yellow).",
+  talk:[`What color is your ${t.thing}?`,t.q[0]],cleanup:["Sweep leftover scraps into one 'scrap bag' for next art day.","Make capping glue a game: \"Click the hat on!\"","Wipe tables with a damp cloth. Dried glue stick peels right off."]})},
+
+{id:"sensory",kind:"Sensory",ages:[2,6],min:20,mode:"station",needs:[["bin"],["water","rice"]],extras:["scoops","cups","pompoms","blocks"],
+ title:t=>`${t.name} Sensory Bin`,sum:t=>`A dig-and-discover bin filled with ${t.things} to find, scoop, and talk about.`,
+ build:(t,c)=>{const wet=c.has("water")&&(!c.has("rice")||c.young);return{
+  setup:["Spread a sheet or towel under the bin to catch spills.",wet?"Fill the bin with 2–3 inches of lukewarm water.":"Pour in dry rice or beans, about 2–3 inches deep.",`Hide ${t.hide} in the bin.`,
+    ...(c.has("scoops")||c.has("cups")?[`Add ${list([c.has("scoops")&&"scoops and spoons",c.has("cups")&&"cups for pouring"].filter(Boolean))}.`]:[]),"Limit the bin to 3–4 kids at a time; use a picture sign for turns."],
+  steps:["Wash your hands.",`Dig with your hands. What ${t.things} can you find?`,"Scoop and pour into a cup.","Tell a friend what you found.","Put everything back in the bin."],
+  easier:wet?"Use fewer, bigger toys and let kids just splash and pour.":"Use bigger hidden objects and switch to water if anyone is still mouthing things.",
+  harder:`Give each child a picture list of ${t.things} to find and tally with crayon marks.`,
+  talk:[`Which ${t.thing} did you find first?`,wet?"Does it feel warm or cold?":"Does it feel smooth or bumpy?",t.q[0]],
+  cleanup:[`Give a 2-minute warning, then a "freeze hands" signal.`,wet?"Towel off toys and air-dry them on a rack. Dump the water in a sink or outside.":"Shake hands over the bin before leaving. Funnel spills from the sheet back in and store with a lid.","Kids sort the hidden objects back into a basket. Count them together."]}}},
+
+{id:"dough",kind:"Fine motor",ages:[2,7],min:15,mode:"station",needs:[["dough"]],extras:["sticks","cups","pompoms","blocks"],
+ title:t=>`Squish & Build ${titleCase(t.things)}`,sum:t=>`Kids roll, pinch, and poke play dough into ${t.things}.`,
+ build:(t,c)=>({setup:["Divide dough into fist-size balls, one per child.",`Put a picture of a ${t.thing} at each seat for ideas.`,
+    ...(c.has("sticks")||c.has("cups")?[`Set out ${list([c.has("sticks")&&"craft sticks for carving lines",c.has("cups")&&"cups for cutting circles"].filter(Boolean))}.`]:[]),
+    ...(c.has("pompoms")?["Add pom-poms for eyes and spots (3s and up)."]:[])],
+  steps:["Roll your dough into a ball.","Squish it flat with your hand.",`Make a ${t.thing}: roll, pinch, poke!`,"Show a friend.","Roll it back into a ball."],
+  easier:"Just squish, poke, and roll snakes. The making is the point, not the finished shape.",
+  harder:c.school?`Sculpt a detailed ${t.thing} with at least 5 parts, then write a label card explaining each part.`:`Make a whole scene: ${t.build}. Count the parts you made.`,
+  talk:["Is your dough soft or hard? Squishy or smooth?",t.q[1]],cleanup:["Return each color to its own container and press the lid until it clicks.","Scrape dried crumbs with a craft stick before wiping the table.","Count containers together before they go on the shelf."]})},
+
+{id:"plate",kind:"Art",ages:[2,8],min:20,mode:"station",needs:[["plates"],["paint","markers","crayons"]],extras:["gluesticks","glue","pompoms","tissue","cotton","scissors","yarn"],
+ title:t=>`Paper Plate ${titleCase(t.thing)}`,sum:t=>`A paper plate becomes a ${t.thing} with color and a few added details.`,
+ build:(t,c)=>{const col=c.has("paint")?"paint":c.has("markers")?"markers":"crayons",g=c.has("gluesticks")||c.has("glue");return{
+  setup:["Write each child's name on the back of a paper plate.",`Set out ${col} in ${list(t.colors)}${col==="paint"?", with a smock for everyone":""}.`,
+    ...(g?[`Pre-cut small details for the ${t.thing} (spots, stripes, simple shapes) from paper scraps.`]:[]),
+    ...(g&&(c.has("pompoms")||c.has("cotton")||c.has("tissue"))?[`Add a tray of ${list([c.has("pompoms")&&"pom-poms",c.has("cotton")&&"cotton balls",c.has("tissue")&&"tissue squares"].filter(Boolean))}.`]:[]),
+    "Hold up a finished example so kids see the idea, then put it away so their versions can be their own."],
+  steps:[`Color your plate like a ${t.thing}.`,...(g?["Glue on the extra parts."]:["Draw the details."]),"Add spots, stripes, or dots.","Lay it flat to dry."],
+  easier:"Color the whole plate one color. You hold the glue while the child chooses where parts go.",
+  harder:c.has("yarn")?"Punch holes and add yarn so the plate can hang as a mobile.":"Kids cut their own parts and give their creation a name.",
+  talk:[`What does a ${t.thing} have that we need to add?`,t.q[1]],
+  cleanup:[col==="paint"?"Rinse brushes in a bucket of soapy water right at the table.":"Kids sort crayons or markers back by color into cups.","Put scraps in the scrap bag and glue caps back on.","Plates dry flat on the windowsill or drying rack with names facing up."]}}},
+
+{id:"move",kind:"Movement",ages:[2,10],min:10,mode:"circle",needs:[],extras:["scarves","music","tape"],
+ title:t=>`Move Like ${titleCase(t.things)}`,sum:t=>`A get-the-wiggles-out game where kids move like ${t.things}.`,
+ build:(t,c)=>({setup:["Push chairs aside to clear an open space.","Practice the stop signal first: \"When I say freeze, you freeze!\"",
+    ...(c.has("music")?["Queue up a song to start and pause."]:[]),...(c.has("scarves")?["Put one scarf or ribbon per child in a basket."]:[]),...(c.has("tape")?["Tape an X on the floor for each child as their home spot."]:[])],
+  steps:t.moves.concat(["Freeze! Now melt slowly to the floor."]),
+  easier:"Do each move with the kids, slowly, and repeat favorites. Hold hands for balance.",
+  harder:c.school?"Play charades: one child acts out a theme word, the class guesses, and the guesser goes next.":"Let kids take turns choosing the next animal or motion, or play it as a guessing game.",
+  talk:[`Which ${t.thing} move was the hardest?`,"Is your heart beating fast or slow now?"],
+  cleanup:["Cool down: 3 slow 'balloon' breaths together.",...(c.has("scarves")?["Kids 'feed' scarves back into the basket one color at a time."]:[]),"Each child carries one chair back to the table."]})},
+
+{id:"count",kind:"Math",ages:[3,7],min:15,mode:"station",needs:[["cups"],["pompoms","blocks","cotton","sticks"]],extras:["markers","stickers","tape"],
+ title:t=>`${titleCase(t.thing)} Counting Cups`,sum:t=>`Kids count objects into numbered cups to "feed" or "fill" each ${t.thing}.`,
+ build:(t,c)=>{const ctr=c.has("pompoms")?"pom-poms":c.has("blocks")?"small blocks":c.has("cotton")?"cotton balls":"craft sticks";return{
+  setup:[c.school?"Number 10 cups from 1 to 10.":"Number 5 cups from 1 to 5. Add dots next to each number.",`Tape or draw a little ${t.thing} on each cup.`,`Put ${ctr} in a tray in the middle of the table.`],
+  steps:["Pick a cup.","Look at the number.",`Count that many ${ctr} in.`,"Dump it out. Count again!"],
+  easier:"Use only cups 1, 2, and 3. Count out loud together, touching each object.",
+  harder:c.school?"Pick two cups and write the number sentence (3 + 4 = 7), or skip-count by 2s and 5s.":`Go up to 10, or sort ${ctr} by color first, then count each color.`,
+  talk:["Which cup has the most? The least?","If we add one more, how many now?"],
+  cleanup:[`Pour all the ${ctr} back into the tray. Count by twos for a challenge.`,"Stack the cups in order.","Store in one bin labeled with a picture so it's ready next time."]}}},
+
+{id:"dot",kind:"Art",ages:[2,6],min:20,mode:"station",needs:[["paint"],["paper","plates","filters"]],extras:["cotton","sponges","brushes"],
+ title:t=>`Dab-a-Dot ${titleCase(t.thing)} Painting`,sum:t=>`Kids dab paint dots to fill in a ${t.thing}. Good for little hands and big feelings.`,
+ build:(t,c)=>{const tool=c.has("cotton")?"cotton balls":c.has("sponges")?"small sponge pieces":c.has("brushes")?"paintbrushes":"fingertips",surf=c.has("paper")?"paper":c.has("plates")?"a paper plate":"a coffee filter";return{
+  setup:[`Draw a big ${t.thing} outline on ${surf} for each child. Write names first.`,`Pour ${list(t.colors)} paint into shallow plates or lids.`,
+    tool==="cotton balls"?"Clip each cotton ball with a clothespin, or just let kids hold it.":`Set out ${tool} next to each paint color.`,"Smocks on and sleeves pushed up before anyone sits down."],
+  steps:[`Dip your ${tool==="fingertips"?"finger":tool==="cotton balls"?"cotton ball":tool==="paintbrushes"?"brush":"sponge"} in paint.`,"Dab, dab, dab!",`Fill your ${t.thing} with dots.`,"Try a new color."],
+  easier:"Offer one or two colors and let any dots anywhere count. Exploring paint is the goal.",
+  harder:"Make a pattern of dots, or mix two colors on the paper and name the new one.",
+  talk:["What happens when two colors touch?",t.q[0]],
+  cleanup:["Drop used cotton balls or sponges straight into a trash bag taped to the table edge.","Wipe hands at the table with a wet cloth before walking to the sink.","Lay paintings on the drying rack, names facing up."]}}},
+
+{id:"melt",kind:"Science",ages:[3,10],min:20,mode:"station",needs:[["filters"],["markers"]],extras:["water","plates","tape","sticks"],
+ title:t=>`Color-Melt ${titleCase(t.things)}`,sum:t=>`Marker scribbles on coffee filters spread like magic with a few drops of water.`,
+ build:(t,c)=>({setup:["Use washable markers only. Permanent markers won't spread.",`Put a coffee filter on ${c.has("plates")?"a paper plate":"a tray or folded paper towel"} at each spot to catch drips.`,"Fill small cups with water and add a spoon or dropper for each child. A spray bottle works too."],
+  steps:["Scribble colors all over your filter.","Drip a little water on it.","Watch the colors spread!","Let it dry.",`Turn it into a ${t.filter.split(":")[0]}.`],
+  easier:"An adult sprays the water while kids watch and name the colors.",
+  harder:c.school?"Draw one thick black-marker dot near the bottom of a filter strip and stand it in water. Black ink splits into hidden colors. Scientists call this chromatography.":`Predict first: "What color will it make?" Then finish the ${t.filter}.`,
+  talk:["What happened when the colors got wet?","Which colors mixed together?"],
+  cleanup:["Move wet filters to a drying spot. They dry in about 20 minutes.","Kids put caps on markers until they click.","Wipe the table with paper towels; water drips clean up fast."]})},
+
+{id:"spy",kind:"Exploring",ages:[3,7],min:20,mode:"station",needs:[["tubes"],["crayons","markers","stickers","tape","paint"]],extras:["yarn","holepunch"],
+ title:t=>`${titleCase(t.thing)} Spyglasses`,sum:t=>`Kids decorate cardboard-tube spyglasses, then hunt for ${t.things} hidden around the room.`,
+ build:(t,c)=>({setup:["Give each child 1 cardboard tube (or tape 2 together for binoculars).",`Hide 6–8 pictures of ${t.things} around the room at kid eye level.`,...(c.has("yarn")&&c.has("holepunch")?["Punch 2 holes near one end for a short yarn handle."]:[])],
+  steps:["Decorate your spyglass.","Hold it up to your eye.",`Walk and look for ${t.things}.`,"Whisper to a friend when you spot one!"],
+  easier:"Hide pictures in plain sight and spy together as a group.",harder:"Give kids a checklist to mark each picture they find, or hide them higher and lower.",
+  talk:["Where did you find the most?","Does the room look different through your spyglass?"],
+  cleanup:["Kids collect the hidden pictures and bring them to you.","Spyglasses go in cubbies to take home.","Sweep up decorating scraps together; sing a cleanup song."]})},
+
+{id:"stickers",kind:"Fine motor",ages:[2,5],min:15,mode:"station",needs:[["stickers"],["paper"]],extras:["crayons","markers"],
+ title:t=>`${t.name} Sticker Scene`,sum:t=>`Peeling and placing stickers on ${t.scene} builds finger strength and stories.`,
+ build:(t,c)=>({setup:[`Draw or color a simple background (${t.scene}) on paper for each child.`,"Peel back the sticker sheet edges so stickers lift off easily.",...(c.has("crayons")||c.has("markers")?["Put crayons or markers out for adding details."]:[])],
+  steps:["Peel a sticker.","Stick it on your picture.","Add more!","Tell me your story."],
+  easier:"Remove the background part of the sticker sheet so stickers stand up, ready to grab.",harder:"Write down the child's story word-for-word at the bottom of the page.",
+  talk:["Who is in your picture?","What happens next?"],cleanup:["Kids drop sticker backing into the trash. Make it a game of 'feed the trash can.'","Stack finished scenes in a cubby pile.","Pick up stray stickers from the floor. Count them as you go."]})},
+
+{id:"blocks",kind:"Building",ages:[2,10],min:20,mode:"circle",needs:[["blocks"]],extras:["boxes","tape","paper","crayons"],
+ title:t=>`Build ${cap(t.build.replace(/^an? /,""))}`,sum:t=>`Kids work together to build ${t.build} with blocks.`,
+ build:(t,c)=>({setup:["Clear a building zone on the rug and mark the edges with tape if you have it.",`Show a picture of ${t.build} for inspiration.`,...(c.has("boxes")?["Add cardboard boxes as big building pieces."]:[]),...(c.has("paper")?["Put paper and crayons nearby for signs."]:[])],
+  steps:[`Let's build ${t.build}!`,"Stack blocks carefully.","Add a door or a path.",`Make it a home for ${t.things}.`],
+  easier:"Build side by side with the child and narrate: \"Tall! Taller!\"",
+  harder:c.school?"Engineering challenge: sketch a plan, build, then test it. Can it stand for 10 seconds while you count? Improve it and test again.":"Draw a plan first, or make a sign and label the parts.",
+  talk:["What did you build first?","How can we make it stronger?"],
+  cleanup:["Take a photo before it comes down so the work 'stays.'","Match blocks to shape outlines taped on the shelf.","Sing the cleanup song and see if blocks are away before it ends."]})},
+
+{id:"trail",kind:"Movement",ages:[2,8],min:15,mode:"circle",needs:[["tape"]],extras:["paper","music"],
+ title:t=>`${t.name} Tape Trail`,sum:t=>`A masking-tape path on the floor with ${t.things} to move between.`,
+ build:(t,c)=>({setup:["Test a small piece of tape to be sure it peels off your floor cleanly.","Tape a path on the floor with straight, zigzag, and curvy parts.",`Tape ${c.has("paper")?"paper":"simple"} pictures of ${t.things} at stops along the trail.`],
+  steps:["Walk on the line.",...t.moves.slice(0,2),"Tiptoe to the end!"],
+  easier:"Use one straight line and walk it holding hands.",harder:c.school?"Make it an obstacle course: time each run and try to beat your own time.":"Walk backward, hop on one foot, or balance a beanbag on your head.",
+  talk:["Was the zigzag or the curvy line harder?",t.q[0]],cleanup:["Kids peel the tape up and roll it into one giant tape ball.","Pictures go back in a folder for next time.","Check the floor together for leftover bits."]})},
+
+{id:"lace",kind:"Fine motor",ages:[4,8],min:20,mode:"station",needs:[["plates","boxes","paper"],["yarn"]],extras:["holepunch","crayons","markers","tape"],
+ title:t=>`Lace a ${titleCase(t.thing)}`,sum:t=>`Kids sew yarn in and out of a ${t.thing} card, a big fine-motor workout.`,
+ build:(t,c)=>({setup:[`Cut a ${t.thing} shape from a ${c.has("plates")?"paper plate":c.has("boxes")?"piece of cardboard":"double layer of paper"} for each child.`,c.has("holepunch")?"Punch 8–10 holes around the edge.":"Poke 8–10 holes around the edge with a pencil (adult job).","Cut yarn about 18 inches long. Wrap one end in tape to make a stiff 'needle' and knot the other end."],
+  steps:["Push the yarn through a hole.","Pull it all the way.","Go to the next hole.","Keep going around!"],
+  easier:"Use fewer, bigger holes and lace with the child, saying \"in, out, in, out.\"",harder:c.school?"Try a whipstitch around the edge, then lace a second color between the holes to make a pattern.":"Color the shape first and try to go in the same direction all the way around.",
+  talk:["Is the yarn going over or under?",t.q[1]],cleanup:["Snip and tie off finished cards; send them home.","Wind leftover yarn into a ball together.","Recycle cardboard scraps in the bin."]})},
+
+{id:"book",kind:"Early literacy",ages:[3,10],min:20,mode:"station",needs:[["paper"],["crayons","markers"]],extras:["stickers","tape"],
+ title:t=>`My ${t.name} Book`,sum:t=>`Kids draw a 4-page ${t.name.toLowerCase()} story${""} and put words to it.`,
+ build:(t,c)=>({setup:["Fold 2 sheets of paper in half and tape or staple them into a little book for each child.",`Write "My ${t.name} Book" and the child's name on the cover.`,"Read a short theme book together first if you have one."],
+  steps:[`Draw a ${t.thing} on page 1.`,"Draw what happens next.",c.school?"Write a sentence on each page.":"Tell me the words.","Read your book to a friend!"],
+  easier:"Make a 2-page book and let the child draw one picture per page.",harder:c.school?"Add a title page, an 'About the Author' page, and use 3 words from today's word list.":"Kids copy one word per page, like a word from today's word list.",
+  talk:[`What is your ${t.thing}'s name?`,"How does your story end?"],cleanup:["Books go in a basket for the class library.","Crayons back in their boxes. Count how many are in each.","Recycle paper scraps."]})},
+
+{id:"float",kind:"Science",ages:[3,10],min:20,mode:"station",needs:[["water"],["bin"]],extras:["cups","blocks","sticks","cotton","pompoms"],
+ title:t=>`Sink or Float: ${t.name}`,sum:t=>`Kids predict and test which ${t.things} sink and which float.`,
+ build:(t,c)=>({setup:["Fill the bin with water and put a towel under it.",`Collect 8–10 objects: ${t.hide}, plus classroom things like ${list(["a block","a craft stick","a cotton ball","a spoon"].filter((x,i)=>[c.has("blocks"),c.has("sticks"),c.has("cotton"),true][i]))}.`,"Tape two papers on the table: one labeled SINK, one labeled FLOAT."],
+  steps:["Pick an object.","Guess: sink or float?","Drop it in gently.","Was your guess right?"],
+  easier:"Test objects one at a time with the whole group shouting \"sink!\" or \"float!\"",harder:c.school?"Record guesses and results in a chart, then try to make a sinker float (hint: put it in a cup boat).":"Sort objects onto the SINK and FLOAT papers before and after, and compare.",
+  talk:["Why do you think it floated?","Can we make something that sank float?"],cleanup:["Dry each object and put it on its SINK or FLOAT paper.","Empty the water in a sink or on plants outside.","Hang towels to dry."]})},
+
+{id:"challenge",kind:"STEM",ages:[5,10],min:25,mode:"teams",needs:[["cups","sticks","tubes","boxes","paper"],["tape"]],extras:["scissors","yarn","plates"],
+ title:t=>`${titleCase(t.thing)} Engineering Challenge`,sum:t=>`Teams design and build ${t.build} that has to stand up on its own.`,
+ build:(t,c)=>{const mats=["cups","sticks","tubes","boxes","paper","plates","yarn"].filter(c.has).map(x=>LABEL[x].toLowerCase());return{
+  setup:["Split kids into teams of 3–4.",`Give each team the same materials: ${list(mats.concat(["masking tape"]))}.`,`Write the challenge on the board: "Build ${t.build} that stands on its own for 10 seconds."`,"Set a timer: 5 minutes to plan, 15 minutes to build."],
+  steps:["Plan with your team.","Build it together.","Test it: does it stand?","Fix one thing and test again.","Show the class!"],
+  easier:"Put an adult on each team, skip the timer, and celebrate anything that stands.",harder:"Add a rule: it must hold a book on top, or teams can use only 10 pieces of tape.",
+  talk:["What worked? What would you change next time?","How did your team share the jobs?"],
+  cleanup:["Teams take apart builds and sort materials back into bins.","Keep good pieces for next time; recycle torn ones.","Snap a photo of each build for a class 'engineering wall.'"]}}},
+
+{id:"bingo",kind:"Game",ages:[4,10],min:20,mode:"circle",needs:[["paper"],["crayons","markers"]],extras:["pompoms","cups","stickers"],
+ title:t=>`${t.name} Bingo`,sum:t=>`Kids draw ${t.things} in a grid, then play bingo as you call them out.`,
+ build:(t,c)=>({setup:[c.young?"Fold paper into 4 boxes (2 × 2) for each child.":"Fold paper into 9 boxes (3 × 3) for each child.",`Make a list of 12 things to call, like ${list(t.words.concat([t.thing]))}.`,c.has("pompoms")?"Put pom-poms in cups to use as bingo markers.":"Kids will mark boxes with a big X."],
+  steps:["Draw one picture in each box.","Listen for the word I call.","Cover it if you have it!","Three in a row? Shout BINGO!"],
+  easier:"Use a 2 × 2 grid and let kids pick from pictures you've already drawn.",harder:c.school?"Kids write the words instead of drawing, and you call out clues (\"I have fins\") instead of the word.":"Play until the whole card is covered.",
+  talk:[`Which ${t.thing} picture was the hardest to draw?`,t.q[0]],cleanup:[c.has("pompoms")?"Pom-poms go back in the cups. Count them as they go in.":"Kids fold their cards in half.","Cards go home in backpacks so families can play.","Crayons back by color."]})},
+
+{id:"comic",kind:"Writing & art",ages:[6,10],min:30,mode:"station",needs:[["paper"],["crayons","markers"]],extras:["stickers","scissors"],
+ title:t=>`${t.name} Comic Strip`,sum:t=>`Kids plan and draw a 4-panel comic starring a ${t.thing} character.`,
+ build:(t,c)=>({setup:["Fold paper into 4 panels, or draw 4 boxes on each sheet.","Show a comic strip and point out panels and speech bubbles.",`Brainstorm names for a ${t.thing} character on the board.`],
+  steps:[`Invent a ${t.thing} character.`,"Panel 1: meet your character.","Panels 2 and 3: a problem happens.","Panel 4: solve the problem.","Add speech bubbles!"],
+  easier:"Make 2 panels, a beginning and an end. An adult writes the words.",harder:"Add a title, sound effects (BOOM!), and stretch it to 6 panels.",
+  talk:["What was your character's problem?","How did they solve it?"],cleanup:["Hang comics on a 'comics wall' to read later.","Markers capped until they click.","Recycle paper scraps."]})}
+];
+
+/* ================= State ================= */
+const DEFAULT_HAVE=["paper","crayons","markers","paint","gluesticks","scissors","tape","plates","cups","pompoms","cotton","tissue","dough","blocks","tubes"];
+const state={showMore:false,theme:"summer",custom:"",age:"4",group:"small",have:new Set(DEFAULT_HAVE),extra:[],source:"builtin",cands:[],idx:0,card:null,customTitles:[],saved:[]};
+const S={mode:null,uid:null,db:null,user:null,sample:null,downloads:null,profile:null,cardsUnsub:null,ready:false};
+
+function theme(){return state.custom.trim()?customTheme(state.custom):THEMES[state.theme];}
+function mappedExtras(){const s=new Set();state.extra.forEach(x=>{const k=x.toLowerCase().trim();for(const key in SYNONYMS){if(SYNONYMS[key]&&k.includes(key))s.add(SYNONYMS[key]);}});return s;}
+function has(id){return state.have.has(id)||mappedExtras().has(id);}
+
+/* ================= Built-in generator ================= */
+function ctx(){const[lo,hi]=ageRange(state.age);return{has,lo,hi,young:lo<=3,school:lo>=6,mixed:lo!==hi};}
+function eligible(f){const[lo]=ageRange(state.age);return f.ages[0]<=lo&&f.ages[1]>=lo&&f.needs.every(g=>g.some(has));}
+function rankCandidates(){const[lo]=ageRange(state.age);return FORMATS.filter(eligible).map(f=>({f,score:f.extras.filter(has).length+(f.needs.length?1.5:0)+(lo>=6&&f.ages[0]>=4?2:0)+Math.random()*2})).sort((a,b)=>b.score-a.score).map(x=>x.f);}
+function minutesFor(f){const[lo,hi]=ageRange(state.age);if(lo!==hi)return lo<=3?Math.min(f.min,15):f.min+10;if(lo===2)return Math.min(f.min,10);if(lo===3)return Math.min(f.min,15);if(lo===4)return f.min;if(lo===5)return f.min+5;if(lo<=7)return f.min+10;return f.min+15;}
+function safetyFor(used,f){
+  const s=[],c=ctx();
+  if(c.young&&(used.some(u=>["pompoms","rice","cotton"].includes(u))||["sensory","float","spy"].includes(f.id)))s.push("Choking check: anything that fits through a toilet-paper tube is too small for kids who still put things in their mouths. Supervise closely or swap for bigger pieces.");
+  if(used.includes("scissors"))s.push(c.school?"Review scissor rules: cut away from your body, walk with points down.":"Safety scissors only, with an adult at the table.");
+  if(used.some(u=>["paint","markers"].includes(u)))s.push("Use washable, non-toxic art supplies (look for the AP seal).");
+  if(used.includes("water"))s.push("Stay within arm's reach of kids at water play, even with a shallow tub. Wipe spills right away.");
+  if(used.includes("dough"))s.push("Most play dough contains wheat. Check your allergy list.");
+  if(used.includes("yarn"))s.push("Keep yarn pieces short (under 18 inches) and collect them at the end.");
+  if(f.kind==="Movement")s.push("Clear chairs and toys from the space and remind kids about personal bubbles.");
+  return s.slice(0,4);
+}
+function buildFromFormat(f){
+  const t=theme(),c=ctx(),b=f.build(t,c);
+  const used=[];f.needs.forEach(g=>{const hit=g.find(has);if(hit)used.push(hit);});f.extras.forEach(e=>{if(has(e)&&!used.includes(e)&&LABEL[e])used.push(e);});
+  if(f.id==="challenge"){["cups","sticks","tubes","boxes","paper"].forEach(x=>{if(has(x)&&!used.includes(x))used.push(x);});}
+  const groupTip=f.mode==="station"&&state.group==="whole"?["With a whole class, run this at one table in rounds of 4–6 while others choose centers."]:f.mode==="station"&&state.group==="half"?["Prepare a full set of materials for each child so no one waits."]:[];
+  return{title:f.title(t),theme:t.name,color:t.c,kind:f.kind,age:ageLabel(state.age),group:GROUP_LABEL[state.group],minutes:minutesFor(f),summary:f.sum(t),
+    supplies:used.map(u=>LABEL[u]),optional:[],setup:b.setup.concat(groupTip),steps:b.steps,easier:b.easier,harder:b.harder,talk:b.talk,words:t.words,cleanup:b.cleanup,safety:safetyFor(used,f),source:"builtin"};
+}
+function generateBuiltIn(again){
+  if(!again){state.cands=rankCandidates();state.idx=0;}else state.idx++;
+  if(!state.cands.length){setStatus("No ideas fit those supplies yet. Tap paper and crayons, or a few more supplies.",true);return false;}
+  const looped=again&&state.idx>=state.cands.length;
+  if(state.idx>=state.cands.length){state.cands=rankCandidates();state.idx=0;}
+  state.source="builtin";showCard(buildFromFormat(state.cands[state.idx]));
+  setStatus(looped?"You've seen every idea that fits. Starting over. Pick more supplies for more ideas.":(state.cands.length>1?`Idea ${state.idx+1} of ${state.cands.length}. Tap "Different idea" for another.`:"This is the only idea that fits. Pick more supplies for more ideas."));
+  return true;
+}
+
+/* ================= Custom activity through DeepSpace ================= */
+let customBusy=false;
+let activeCustomRequest="";
+function activityRequest(avoid){
+  const t=theme(),sup=[...state.have].map(id=>LABEL[id]).concat(state.extra);
+  return{theme:t.name,age:ageLabel(state.age),group:GROUP_LABEL[state.group],supplies:sup.slice(0,45),avoid:avoid.slice(-10)};
+}
+function strArr(v,max){return Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.trim()).map(x=>x.trim().slice(0,240)).slice(0,max):[];}
+function normalizeCard(o,src){
+  if(!o||typeof o!=="object")throw new Error("shape");
+  const t=theme();
+  const card={title:String(o.title||"").slice(0,80),theme:String(o.theme||t.name).slice(0,40),color:/^#[0-9a-f]{6}$/i.test(o.color||"")?o.color:t.c,kind:String(o.kind||"Activity").slice(0,30),
+    age:String(o.age||ageLabel(state.age)).slice(0,30),group:String(o.group||GROUP_LABEL[state.group]).slice(0,30),minutes:Math.max(5,Math.min(90,Math.round(+o.minutes||15))),summary:String(o.summary||"").slice(0,300),
+    supplies:strArr(o.supplies,14),optional:strArr(o.optional,5),setup:strArr(o.setup,7),steps:strArr(o.steps,8),easier:String(o.easier||"").slice(0,300),harder:String(o.harder||"").slice(0,300),
+    talk:strArr(o.talk,4),words:strArr(o.words,5),cleanup:strArr(o.cleanup,5),safety:strArr(o.safety,4),source:src==="custom"?"custom":"builtin"};
+  if(!card.title||card.steps.length<2)throw new Error("shape");
+  return card;
+}
+function generateCustom(again){
+  if(customBusy)return;
+  if(!again)state.customTitles=[];
+  customBusy=true;activeCustomRequest="tt-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  $("#goCustom").disabled=true;$("#another").disabled=true;$("#another2").disabled=true;
+  const t=theme();
+  $("#cardSlot").innerHTML=`<article class="card" style="--band:${t.c};--band-ink:${bandInk(t.c)}"><div class="card-band"><p class="kicker">${esc(t.name)}</p><h2>Planning your activity…</h2></div><div class="thinking"><p>Creating an idea for ${esc(t.name.toLowerCase())} and ${esc(ageLabel(state.age).toLowerCase())}.</p><span style="color:#56627A">This may take a few seconds.</span><div class="dots"><i></i><i></i><i></i></div></div></article>`;
+  setStatus("");
+  sendParent("custom-idea",activityRequest(state.customTitles),activeCustomRequest);
+}
+
+/* ================= Render card ================= */
+const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
+function cardKey(c){return(c.title+"|"+c.age+"|"+c.theme).toLowerCase();}
+function tipFor(card){const[lo,hi]=ageRange(state.age);const easy=lo<=3||(lo!==hi&&lo<6);return easy?{cls:"easy",label:"To make it easier",text:card.easier}:{cls:"hard",label:"To make it more challenging",text:card.harder};}
+function showCard(card,quiet){
+  state.card=card;
+  const tip=tipFor(card);
+  $("#cardSlot").innerHTML=`<article class="card${quiet?"":" enter"}" style="--band:${esc(card.color)};--band-ink:${bandInk(card.color)}" id="activityCard">
+    <header class="card-band"><p class="kicker">${esc(card.kind)} · ${esc(card.theme)}</p><h2>${esc(card.title)}</h2></header>
+    <div class="card-body">
+      <div class="meta"><span>${esc(card.age)}</span><span>About ${card.minutes} min</span><span>${esc(card.group)}</span></div>
+      ${card.summary?`<p class="summary">${esc(card.summary)}</p>`:""}
+      <div class="cols">
+        <div>
+          <section class="s-need"><h3>You'll need</h3><ul class="needs">${card.supplies.length?li(card.supplies):"<li>Just open space</li>"}${card.optional.map(x=>`<li class="opt">${esc(x)} (optional)</li>`).join("")}</ul></section>
+          <section class="s-setup"><h3>Get ready</h3><ol>${li(card.setup)}</ol></section>
+        </div>
+        <section class="s-do"><h3>Let's do it!</h3><ol class="do">${li(card.steps)}</ol></section>
+      </div>
+      ${tip.text?`<div class="tip ${tip.cls}"><b>${tip.label}</b><p>${esc(tip.text)}</p></div>`:""}
+      <div class="cols">
+        <section class="s-talk"><h3>Ask the kids</h3><ul>${li(card.talk.slice(0,2))}</ul></section>
+        <section class="s-clean"><h3>Clean up</h3><ul>${li(card.cleanup)}</ul></section>
+      </div>
+      ${card.safety.length?`<section class="safety"><h3>Safety</h3><ul>${li(card.safety)}</ul></section>`:""}
+      <p class="source"><span>${card.source==="custom"?"Custom idea. Check it over before class.":"From the TinyTable idea box."}</span><span>TinyTable</span></p>
+    </div></article>`;
+  $("#outLabel").textContent="Your activity";
+  syncSaveBtn();
+}
+
+/* ================= Text + PDF ================= */
+function pdfSafe(s){return String(s).replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,"...").replace(/[–—]/g,"-").replace(/×/g,"x").replace(/[^\x00-\xFF]/g,"");}
+function buildPdf(c){
+  const{jsPDF}=window.jspdf,doc=new jsPDF({unit:"pt",format:"letter"});
+  const W=612,H=792,M=40,LM=78,RW=W-LM-M,[r,g,b]=hexRgb(c.color),ink=bandInk(c.color)==="#FFFFFF"?[255,255,255]:[26,18,64];
+  const rainbow=[[255,79,163],[255,138,61],[255,210,63],[62,224,127],[51,214,255],[155,107,255]];
+  let y;
+  doc.setDrawColor(200,206,214);doc.setLineWidth(1);doc.roundedRect(M-14,M-14,W-2*(M-14),H-2*(M-14),10,10);
+  doc.setFillColor(r,g,b);doc.rect(M-14,M-14,W-2*(M-14),96,"F");
+  const sw=(W-2*(M-14))/6;rainbow.forEach((col,i)=>{doc.setFillColor(...col);doc.rect(M-14+i*sw,M+82,sw,5,"F");});
+  doc.setFillColor(255,255,255);doc.circle(M+8,M+14,8,"F");
+  doc.setTextColor(...ink);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(pdfSafe(`${c.kind} - ${c.theme}`.toUpperCase()),LM,M+12);
+  doc.setFontSize(24);doc.text(doc.splitTextToSize(pdfSafe(c.title),RW).slice(0,2),LM,M+38);
+  y=M+104;
+  doc.setDrawColor(240,98,122);doc.setLineWidth(1.4);doc.line(LM-14,M+87,LM-14,H-M+14);
+  doc.setTextColor(29,39,56);doc.setFontSize(10);doc.text(pdfSafe(`${c.age}   |   About ${c.minutes} min   |   ${c.group}`),LM,y);y+=18;
+  const ensure=h=>{if(y+h>H-M){doc.addPage();y=M+10;doc.setDrawColor(240,98,122);doc.setLineWidth(1.4);doc.line(LM-14,M-14,LM-14,H-M+14);}};
+  const para=(t,size,style,color)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);doc.setTextColor(...(color||[29,39,56]));const ls=doc.splitTextToSize(pdfSafe(t),RW);ensure(ls.length*size*1.3);doc.text(ls,LM,y);y+=ls.length*size*1.3;};
+  let hi=0;const head=t=>{y+=8;ensure(40);doc.setFillColor(...rainbow[hi++%6]);doc.circle(LM+4,y-4,4.5,"F");doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(29,39,56);doc.text(pdfSafe(t),LM+14,y);y+=16;};
+  const items=(arr,mark,size,style)=>{const sz=size||10.5;arr.forEach((t,i)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(sz);const ls=doc.splitTextToSize(pdfSafe(t),RW-18);ensure(ls.length*sz*1.32+3);doc.setTextColor(29,39,56);
+      if(mark==="box"){doc.setDrawColor(255,79,163);doc.setLineWidth(.9);doc.rect(LM+1,y-8,8,8);}else doc.text(mark==="num"?`${i+1}.`:"•",LM,y);
+      doc.text(ls,LM+18,y);y+=ls.length*sz*1.32+3;});};
+  if(c.summary)para(c.summary,11,"italic",[86,98,122]);
+  head("You'll need");items(c.supplies.length?c.supplies:["Open space"],"box");if(c.optional.length)items(c.optional.map(x=>x+" (optional)"),"box");
+  head("Get ready");items(c.setup,"num");
+  head("Let's do it!");items(c.steps,"num",13,"bold");
+  {const tp=tipFor(c);if(tp.text){head(tp.label);para(tp.text,10.5);}}
+  head("Ask the kids");items(c.talk.slice(0,2),"dot");
+  head("Clean up");items(c.cleanup,"dot");if(c.safety.length){head("Safety");items(c.safety,"dot",10);}
+  doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(120,128,140);
+  const foot=pdfSafe(c.source==="custom"?"TinyTable":"TinyTable");
+  for(let p=1;p<=doc.getNumberOfPages();p++){doc.setPage(p);doc.text(foot,LM,H-M+4);}
+  return doc;
+}
+async function downloadPdf(){
+  const c=state.card;if(!c)return;
+  if(!window.jspdf){setStatus("The PDF maker didn't load. Check your connection and reload the page.",true);return;}
+  const blob=buildPdf(c).output("blob"),name=("TinyTable - "+c.title).replace(/[\\/:*?"<>|]/g,"").slice(0,80)+".pdf";
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);setStatus("PDF download started.");}
+  catch(e){setStatus("Downloads aren't available here. Press Ctrl+P (Cmd+P on a Mac) to print the card.",true);}
+}
+
+/* ================= Saving (account or guest) ================= */
+const LS="tinytable.v2.";
+const lsGet=k=>{try{return JSON.parse(localStorage.getItem(LS+k)||"null");}catch(e){return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(LS+k,JSON.stringify(v));return true;}catch(e){return false;}};
+function sendParent(type,payload,requestId){
+  try{window.parent.postMessage({source:"tinytable",type,payload,requestId},window.location.origin);}catch(e){}
+}
+function snapshot(){return{prefs:{theme:state.theme,custom:state.custom,age:state.age,group:state.group},supplies:{have:[...state.have],extra:state.extra,updatedAt:Date.now()},cards:state.saved};}
+function syncSnapshot(){if(S.mode==="account")sendParent("snapshot",snapshot());}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+const saveSuppliesLater=debounce(()=>{
+  const data={have:[...state.have],extra:state.extra,updatedAt:Date.now()};
+  if(S.mode==="account")syncSnapshot();else lsSet("supplies",data);
+},700);
+const savePrefsLater=debounce(()=>{
+  const prefs={theme:state.theme,custom:state.custom.slice(0,40),age:state.age,group:state.group};
+  if(S.mode==="account")syncSnapshot();else lsSet("prefs",prefs);
+},900);
+function saveSupplies(){state.dirty=true;saveSuppliesLater();}
+function savePrefs(){state.dirty=true;savePrefsLater();}
+function applySupplies(d){if(d&&Array.isArray(d.have)){state.have=new Set(d.have.filter(id=>LABEL[id]));state.extra=(Array.isArray(d.extra)?d.extra:[]).filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,40);}}
+function applyPrefs(p){if(!p)return;if(THEMES[p.theme])state.theme=p.theme;state.custom=typeof p.custom==="string"?p.custom:"";if(AGE_OPTS.some(([v])=>v===p.age))state.age=p.age;if(GROUP_LABEL[p.group])state.group=p.group;}
+function syncSaveBtn(){const btn=$("#saveCard");const on=!!(state.card&&state.saved.some(s=>s.key===cardKey(state.card)));btn.setAttribute("aria-pressed",on);btn.textContent=on?"Saved":"Save";}
+async function toggleSave(){
+  const c=state.card;if(!c)return;const key=cardKey(c);const existing=state.saved.find(s=>s.key===key);
+  if(existing){await removeSaved(existing.id);return;}
+  if(state.saved.length>=150){setStatus("Your shelf holds 150 cards. Delete a few to make room.",true);return;}
+  const id="c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  state.saved.unshift({...c,key,id,savedAt:Date.now()});
+  if(S.mode!=="account")lsSet("cards",state.saved);else syncSnapshot();
+  renderShelf();syncSaveBtn();setStatus(S.mode==="account"?"Saved to your account.":"Saved on this device. Sign in to sync across devices.");
+}
+async function removeSaved(id){
+  state.saved=state.saved.filter(s=>s.id!==id);
+  if(S.mode!=="account")lsSet("cards",state.saved);else syncSnapshot();
+  renderShelf();syncSaveBtn();
+}
+function renderShelf(){
+  $("#shelfCount").textContent=state.saved.length;
+  $("#shelfHint").textContent=state.saved.length?"Tap Open to see or print one again.":"Tap \"Save\" on any activity to keep it here.";
+  $("#savedGrid").innerHTML=state.saved.map(s=>`<div class="ticket" style="--c:${esc(s.color)}"><b>${esc(s.title)}</b><span>${esc(s.theme)} · ${esc(s.age)} · ${esc(s.kind)}</span><div class="acts"><button type="button" class="btn btn-small" data-open="${esc(s.id)}">Open</button><button type="button" class="btn btn-small" data-del="${esc(s.id)}" aria-label="Delete ${esc(s.title)}">Delete</button></div></div>`).join("");
+}
+function listenCards(){
+  state.saved=(lsGet("cards")||[]).filter(x=>x&&x.title).slice(0,150);renderShelf();syncSaveBtn();
+}
+function applyWorkspace(workspace){
+  if(workspace.prefs)applyPrefs(workspace.prefs);
+  if(workspace.supplies)applySupplies(workspace.supplies);
+  state.saved=Array.isArray(workspace.cards)?workspace.cards.filter(x=>x&&x.title).slice(0,150):[];
+  renderAll();renderShelf();syncSaveBtn();setHeader();
+}
+function handleParentMessage(event){
+  if(event.origin!==window.location.origin||!event.data||event.data.channel!=="tinytable-parent")return;
+  const message=event.data;
+  if(message.type==="sync"){
+    const wasAccount=S.mode==="account";
+    if(message.signedIn){
+      S.mode="account";setHeader();
+      if(message.workspace)applyWorkspace(message.workspace);
+      else if(!wasAccount)syncSnapshot();
+      return;
+    }
+    if(wasAccount){
+      Object.assign(state,{theme:"summer",custom:"",age:"4",group:"small",have:new Set(DEFAULT_HAVE),extra:[],card:null,saved:[],cands:[],idx:0,showMore:false,dirty:false});
+      continueGuest();setStatus("Signed out. Your device activities are still available.");
+    }
+    return;
+  }
+  if(message.type==="custom-result"&&message.requestId===activeCustomRequest){
+    customBusy=false;$("#goCustom").disabled=false;$("#another").disabled=false;$("#another2").disabled=false;
+    try{
+      const text=String(message.text||""),a=text.indexOf("{"),b=text.lastIndexOf("}");
+      if(a<0||b<a)throw new Error("shape");
+      const card=normalizeCard(JSON.parse(text.slice(a,b+1)),"custom");
+      state.customTitles.push(card.title);state.source="custom";showCard(card);setStatus("Custom idea ready. Check the safety notes before class.");
+    }catch(e){setStatus("That idea could not be formatted. Try again or choose a built-in idea.",true);if(state.card)showCard(state.card,true);}
+    return;
+  }
+  if(message.type==="custom-error"&&message.requestId===activeCustomRequest){
+    customBusy=false;$("#goCustom").disabled=false;$("#another").disabled=false;$("#another2").disabled=false;
+    const text=String(message.message||"Custom ideas are unavailable right now. Try a built-in idea.");
+    if(state.card)showCard(state.card,true);else generateBuiltIn(false);
+    setStatus(text,true);
+  }
+}
+function continueGuest(){
+  S.mode="guest";S.profile=null;
+  const sup=lsGet("supplies");if(sup)applySupplies(sup);else{const old=(()=>{try{return JSON.parse(localStorage.getItem("tinytable.supplies.v1")||"null");}catch(e){return null;}})();if(old)applySupplies(old);}
+  applyPrefs(lsGet("prefs"));
+  enterApp("guest");
+}
+function enterApp(mode){
+  S.mode=mode;
+  $("#login").hidden=true;$("#appWrap").hidden=false;document.body.classList.add("in-app");
+  setHeader();
+  renderAll();listenCards();
+  state.card=null;setStatus("");showView("plan");
+}
+function setHeader(){
+  const signedIn=S.mode==="account";
+  const nm=signedIn?"Signed in":"Guest";
+  $("#acctName").textContent=nm;
+  $("#acctSub").textContent=signedIn?"Saved across devices":"Saved on this device";
+  $("#avatar").textContent=signedIn?"T":"G";
+  $("#signOut").textContent=signedIn?"Sign out":"Sign in to sync";
+  $("#tagline").textContent=signedIn?"Plan an activity and keep it synced to your account.":"Answer 3 quick questions to get an activity card.";
+  $("#tagline").dataset.base=$("#tagline").textContent;
+}
+function openSignIn(){sendParent("sign-in");}
+function backToPlanning(){$("#login").hidden=true;$("#appWrap").hidden=false;window.scrollTo(0,0);}
+function signOut(){sendParent("sign-out");}
+
+/* ================= UI ================= */
+const COMMON=["paper","crayons","markers","paint","gluesticks","scissors","tape","plates","cups","dough","blocks","stickers"];
+const CHIP_HUES=["var(--coral)","var(--orange)","var(--yellow)","var(--green)","var(--cyan)","var(--violet)"];
+function setStatus(msg,warn){document.querySelectorAll(".status").forEach(s=>{s.textContent=msg||"";s.classList.toggle("warn",!!warn);});}
+function choicesText(){const t=theme();return `${t.name} · ${ageLabel(state.age).replace(/^Age (\d+).*/,"$1 years old")} · ${GROUPS.find(g=>g[0]===state.group)[1]}`;}
+function showView(v,noHash){
+  const act=v==="activity"&&!!(state.card||customBusy);
+  $("#planView").hidden=act;$("#activityView").hidden=!act;
+  if(act)$("#choices").textContent=choicesText();
+  const tg=$("#tagline");if(!act&&tg.dataset.base)tg.textContent=tg.dataset.base;if(act){tg.dataset.base=tg.dataset.base||tg.textContent;tg.textContent="Here's your activity. Print it, save it, or try a different one.";}
+  if(!noHash){try{if(location.hash!=="#"+(act?"activity":"plan"))history.pushState(null,"","#"+(act?"activity":"plan"));}catch(e){}}
+  window.scrollTo(0,0);
+}
+function renderThemes(){
+  $("#themes").innerHTML=THEME_ORDER.map(k=>{const t=THEMES[k];return`<button type="button" class="theme-btn" style="--c:${t.c};--ink-on:${bandInk(t.c)}" data-k="${k}" aria-pressed="${!state.custom.trim()&&state.theme===k}"><span class="sw"></span>${esc(t.name)}</button>`;}).join("");
+  const on=!!state.custom.trim();
+  $("#customTheme").value=state.custom;$("#customTheme").classList.toggle("active",on);
+  if(on)$("#customRow").hidden=false;
+  $("#showCustom").textContent=$("#customRow").hidden?"+ Type my own theme":"Use the theme buttons instead";
+}
+function renderSelects(){
+  $("#ageSel").innerHTML=AGE_OPTS.map(([v,l])=>`<option value="${v}" ${v===state.age?"selected":""}>${esc(/^\d+$/.test(v)?l+" years old":l.replace("Mixed","Mixed ages"))}</option>`).join("");
+  $("#groupSel").innerHTML=GROUPS.map(([v,l])=>`<option value="${v}" ${v===state.group?"selected":""}>${esc(l)}</option>`).join("");
+}
+function renderSupplies(){
+  const all=Object.keys(LABEL);
+  const shown=state.showMore?COMMON.concat(all.filter(id=>!COMMON.includes(id))):COMMON.concat(all.filter(id=>!COMMON.includes(id)&&state.have.has(id)));
+  $("#supplies").innerHTML=shown.map((id,i)=>`<button type="button" class="chip" style="--c:${CHIP_HUES[i%6]}" data-id="${id}" aria-pressed="${state.have.has(id)}"><span class="tick"></span>${esc(LABEL[id])}</button>`).join("")
+    +state.extra.map((x,i)=>`<button type="button" class="chip mine" style="--c:var(--yellow)" data-i="${i}" aria-label="Remove ${esc(x)}">${esc(x)}<span class="x" aria-hidden="true">×</span></button>`).join("");
+  const hidden=all.length-shown.length;
+  $("#moreSup").textContent=state.showMore?"Show fewer supplies":`Show ${hidden} more supplies`;
+  $("#moreSup").hidden=!state.showMore&&hidden===0;
+  $("#supCount").textContent=state.have.size+state.extra.length;
+}
+function renderAll(){renderThemes();renderSelects();renderSupplies();}
+
+$("#themes").addEventListener("click",e=>{const b=e.target.closest(".theme-btn");if(!b)return;state.theme=b.dataset.k;state.custom="";$("#customRow").hidden=true;renderThemes();savePrefs();});
+$("#showCustom").addEventListener("click",()=>{const row=$("#customRow");row.hidden=!row.hidden;if(row.hidden){state.custom="";savePrefs();}renderThemes();if(!row.hidden)$("#customTheme").focus();});
+$("#customTheme").addEventListener("input",e=>{state.custom=e.target.value;$("#customTheme").classList.toggle("active",!!state.custom.trim());document.querySelectorAll(".theme-btn").forEach(b=>b.setAttribute("aria-pressed",!state.custom.trim()&&state.theme===b.dataset.k));savePrefs();});
+$("#ageSel").addEventListener("change",e=>{state.age=e.target.value;savePrefs();});
+$("#groupSel").addEventListener("change",e=>{state.group=e.target.value;savePrefs();});
+$("#supplies").addEventListener("click",e=>{
+  const m=e.target.closest(".chip.mine");if(m){state.extra.splice(+m.dataset.i,1);renderSupplies();saveSupplies();return;}
+  const b=e.target.closest(".chip");if(!b)return;const id=b.dataset.id;state.have.has(id)?state.have.delete(id):state.have.add(id);b.setAttribute("aria-pressed",state.have.has(id));$("#supCount").textContent=state.have.size+state.extra.length;saveSupplies();
+});
+$("#moreSup").addEventListener("click",()=>{state.showMore=!state.showMore;renderSupplies();});
+function addSupply(){
+  const inp=$("#customSupply");const parts=inp.value.split(",").map(s=>s.trim()).filter(Boolean);if(!parts.length){inp.focus();return;}
+  let added=0;parts.forEach(v=>{if(state.extra.length<40&&!state.extra.some(x=>x.toLowerCase()===v.toLowerCase())){state.extra.push(v.slice(0,40));added++;}});
+  inp.value="";renderSupplies();saveSupplies();inp.focus();
+  setStatus(added?`Added ${added===1?parts[0]:added+" supplies"}.`:"That's already on your list.");
+}
+$("#addSupply").addEventListener("click",addSupply);
+$("#customSupply").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addSupply();}});
+$("#planner").addEventListener("submit",e=>{e.preventDefault();if(generateBuiltIn(false))showView("activity");});
+$("#goCustom").addEventListener("click",()=>{generateCustom(false);showView("activity");});
+function differentIdea(){state.source==="custom"?generateCustom(true):generateBuiltIn(true);window.scrollTo({top:0,behavior:"smooth"});}
+$("#another").addEventListener("click",differentIdea);
+$("#another2").addEventListener("click",differentIdea);
+$("#backBtn").addEventListener("click",()=>{setStatus("");showView("plan");});
+$("#backBtn2").addEventListener("click",()=>{setStatus("");showView("plan");});
+addEventListener("popstate",()=>{if(S.mode)showView(location.hash==="#activity"?"activity":"plan",true);});
+$("#pdf").addEventListener("click",downloadPdf);
+$("#saveCard").addEventListener("click",toggleSave);
+$("#savedGrid").addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]"),d=e.target.closest("[data-del]");
+  if(o){const s=state.saved.find(x=>x.id===o.dataset.open);if(s){try{state.source=s.source==="custom"?"custom":"builtin";showCard(normalizeCard(s,s.source));setStatus("Here's your saved activity.");showView("activity");}catch(err){setStatus("That saved activity couldn't open. You can delete it.",true);}}}
+  if(d)removeSaved(d.dataset.del);
+});
+$("#signInBtn").addEventListener("click",openSignIn);
+$("#guestBtn").addEventListener("click",backToPlanning);
+
+$("#setupBack").addEventListener("click",backToPlanning);
+$("#signOut").addEventListener("click",signOut);
+
+window.addEventListener("message",handleParentMessage);
+continueGuest();
+sendParent("ready");
+window.__tt={FORMATS,THEMES,state,S,rankCandidates,buildFromFormat,ageRange,continueGuest,showCard,enterApp};
+})();
+</script>
+</body>
+</html>
